@@ -12,7 +12,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen p-8">
+      <body className="min-h-screen p-0 m-0">
         {children}
       </body>
     </html>
