@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Agentation } from "agentation";
 import {
   ArrowCounterClockwiseIcon,
   ArrowClockwiseIcon,
@@ -18,18 +19,28 @@ interface StrokePoint {
 }
 
 export default function VisitorsPage() {
-  const GRID_ROWS = 21;
-  const GRID_COLS = 10;
+  const CELL_SIZE = 28;
   const CELL_GAP = 4;
-  // Derive cell size from viewport so everything fits on screen
-  // Layout: 54px top (play btn area) + 18px gap + grid + 48px bottom (action bar) + 16px padding
-  // Grid height = GRID_ROWS * cell + (GRID_ROWS - 1) * gap
-  // So: cell = (vh - 136 - (GRID_ROWS - 1) * gap) / GRID_ROWS
-  // Also constrained by width: swatch(32) + spacer(16) + GRID_COLS * cell + (GRID_COLS - 1) * gap <= vw
-  // So: cell = (vw - 48 - (GRID_COLS - 1) * gap) / GRID_COLS
-  // Use CSS min() of both to always fit
-  const CELL_CSS = `min((100dvh - 136px - ${(GRID_ROWS - 1) * CELL_GAP}px) / ${GRID_ROWS}, (100vw - 48px - ${(GRID_COLS - 1) * CELL_GAP}px) / ${GRID_COLS})`;
   const SWATCH_W = 32;
+  const SPACER = 16;
+  const TOP_AREA = 72;    // play button: 22pt + 32h + 18pb
+  const BOTTOM_AREA = 64; // action bar: 16pt + 32h + 16pb
+
+  // Calculate how many columns/rows fit on screen (start with defaults, update on mount)
+  const [GRID_COLS, setGridCols] = useState(10);
+  const [GRID_ROWS, setGridRows] = useState(21);
+
+  useEffect(() => {
+    function calc() {
+      const availW = window.innerWidth - SWATCH_W - SPACER;
+      const availH = window.innerHeight - TOP_AREA - BOTTOM_AREA;
+      setGridCols(Math.max(1, Math.floor((availW + CELL_GAP) / (CELL_SIZE + CELL_GAP))));
+      setGridRows(Math.max(1, Math.floor((availH + CELL_GAP) / (CELL_SIZE + CELL_GAP))));
+    }
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
+  }, []);
   const COLORS = [
     "#D26064",
     "#F8961E",
@@ -56,6 +67,22 @@ export default function VisitorsPage() {
   const [history, setHistory] = useState<string[][][]>([createInitialGrid()]);
   const [currentStep, setCurrentStep] = useState(0);
   const [tempo] = useState(200);
+
+  // Resize grid when column count changes
+  const prevDimsRef = useRef({ rows: GRID_ROWS, cols: GRID_COLS });
+  useEffect(() => {
+    if (prevDimsRef.current.rows === GRID_ROWS && prevDimsRef.current.cols === GRID_COLS) return;
+    prevDimsRef.current = { rows: GRID_ROWS, cols: GRID_COLS };
+    setGrid(old => {
+      return Array(GRID_ROWS).fill(null).map((_, r) =>
+        Array(GRID_COLS).fill("#171717").map((bg, c) =>
+          old[r] && c < old[r].length ? old[r][c] : bg
+        )
+      );
+    });
+    setHistory([createInitialGrid()]);
+    setCurrentStep(0);
+  }, [GRID_COLS, GRID_ROWS]);
 
   // Track whether a touch/mouse draw session is active
   const isDrawingRef = useRef(false);
@@ -238,12 +265,12 @@ export default function VisitorsPage() {
       </div>
 
       {/* Color sidebar + Grid */}
-      <div className="flex flex-1 min-h-0">
+      <div className="flex">
         {/* Color selection — flush left, only right corners rounded */}
         <div
           className="flex flex-col justify-between"
           style={{
-            height: `calc(${GRID_ROWS} * ${CELL_CSS} + ${(GRID_ROWS - 1) * CELL_GAP}px)`,
+            height: GRID_ROWS * CELL_SIZE + (GRID_ROWS - 1) * CELL_GAP,
           }}
         >
           {COLORS.map((color) => (
@@ -253,7 +280,7 @@ export default function VisitorsPage() {
               style={{
                 backgroundColor: color,
                 width: SWATCH_W,
-                height: `calc(${CELL_CSS})`,
+                height: CELL_SIZE,
                 borderRadius: "0 4px 4px 0",
                 outline: currentColor === color && hasSelectedColor && !isRubber
                   ? "2px solid white"
@@ -279,8 +306,8 @@ export default function VisitorsPage() {
           style={{
             touchAction: "none",
             display: "grid",
-            gridTemplateColumns: `repeat(${GRID_COLS}, calc(${CELL_CSS}))`,
-            gridTemplateRows: `repeat(${GRID_ROWS}, calc(${CELL_CSS}))`,
+            gridTemplateColumns: `repeat(${GRID_COLS}, ${CELL_SIZE}px)`,
+            gridTemplateRows: `repeat(${GRID_ROWS}, ${CELL_SIZE}px)`,
             gap: CELL_GAP,
           }}
           onTouchStart={handleTouchStart}
@@ -306,10 +333,15 @@ export default function VisitorsPage() {
         </div>
       </div>
 
-      {/* Action Bar */}
+      {/* Action Bar — aligned to grid edges */}
       <div
         className="flex justify-between items-center"
-        style={{ paddingLeft: 48, paddingRight: 48, paddingTop: 16, paddingBottom: 16 }}
+        style={{
+          marginLeft: SWATCH_W + SPACER,
+          width: GRID_COLS * CELL_SIZE + (GRID_COLS - 1) * CELL_GAP,
+          paddingTop: 16,
+          paddingBottom: 16,
+        }}
       >
         {/* Undo / Redo / Clear */}
         <div className="flex gap-2">
@@ -342,6 +374,7 @@ export default function VisitorsPage() {
           <TrashIcon size={16} />
         </button>
       </div>
+      {process.env.NODE_ENV === "development" && <Agentation />}
     </div>
   );
 }
