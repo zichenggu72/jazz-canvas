@@ -16,54 +16,95 @@ export function getNoteForRow(row: number): string {
   return PENTATONIC_NOTES[Math.min(row, PENTATONIC_NOTES.length - 1)];
 }
 
+/**
+ * Shift a note string by octaves, e.g. shiftOctave('B5', -2) => 'B3'
+ * Clamps to octave 1-7 range.
+ */
+export function shiftOctave(note: string, offset: number): string {
+  const match = note.match(/^([A-G]#?)(\d+)$/);
+  if (!match) return note;
+  const name = match[1];
+  const octave = Math.max(1, Math.min(7, parseInt(match[2]) + offset));
+  return `${name}${octave}`;
+}
+
 // ---------- Instrument Configuration ----------
 
 export interface InstrumentConfig {
   name: string;
   soundfontName: string;
   noteDuration: number; // seconds, calibrated at 120 BPM
+  octaveOffset: number; // shift notes up/down by octaves
 }
 
+// All colors use piano, each in a different register (octave offset)
+// Ordered from palette top to bottom: highest register → lowest register
 export const INSTRUMENT_CONFIGS: Record<string, InstrumentConfig> = {
   '#D26064': {
-    name: 'Muted Trumpet',
-    soundfontName: 'trumpet',
-    noteDuration: 0.25,
-  },
-  '#F8961E': {
-    name: 'Rhodes Electric Piano',
-    soundfontName: 'electric_piano_1',
-    noteDuration: 0.25,
-  },
-  '#F9C74F': {
-    name: 'Vibraphone',
-    soundfontName: 'vibraphone',
-    noteDuration: 0.25,
-  },
-  '#9BA65D': {
-    name: 'Upright Bass',
-    soundfontName: 'acoustic_bass',
-    noteDuration: 0.125,
-  },
-  '#59829E': {
-    name: 'Jazz Organ',
-    soundfontName: 'drawbar_organ',
-    noteDuration: 0.25,
-  },
-  '#A6B8C7': {
-    name: 'Brushed Cymbal',
-    soundfontName: 'woodblock',
-    noteDuration: 0.0625,
-  },
-  '#B5A6C7': {
-    name: 'Saxophone',
-    soundfontName: 'alto_sax',
-    noteDuration: 0.25,
-  },
-  '#7E7A84': {
-    name: 'Acoustic Piano',
+    name: 'Piano +3',
     soundfontName: 'acoustic_grand_piano',
     noteDuration: 0.25,
+    octaveOffset: 3,
+  },
+  '#F8961E': {
+    name: 'Piano +2',
+    soundfontName: 'acoustic_grand_piano',
+    noteDuration: 0.25,
+    octaveOffset: 2,
+  },
+  '#F9C74F': {
+    name: 'Piano +1',
+    soundfontName: 'acoustic_grand_piano',
+    noteDuration: 0.25,
+    octaveOffset: 1,
+  },
+  '#9BA65D': {
+    name: 'Piano 0',
+    soundfontName: 'acoustic_grand_piano',
+    noteDuration: 0.25,
+    octaveOffset: 0,
+  },
+  '#476E51': {
+    name: 'Piano -1',
+    soundfontName: 'acoustic_grand_piano',
+    noteDuration: 0.25,
+    octaveOffset: -1,
+  },
+  '#59829E': {
+    name: 'Piano -2',
+    soundfontName: 'acoustic_grand_piano',
+    noteDuration: 0.25,
+    octaveOffset: -2,
+  },
+  '#A6B8C7': {
+    name: 'Piano -3',
+    soundfontName: 'acoustic_grand_piano',
+    noteDuration: 0.25,
+    octaveOffset: -3,
+  },
+  '#B5A6C7': {
+    name: 'Piano -4',
+    soundfontName: 'acoustic_grand_piano',
+    noteDuration: 0.25,
+    octaveOffset: -4,
+  },
+  '#5B4977': {
+    name: 'Piano -5',
+    soundfontName: 'acoustic_grand_piano',
+    noteDuration: 0.25,
+    octaveOffset: -5,
+  },
+  '#7E7A84': {
+    name: 'Piano -6',
+    soundfontName: 'acoustic_grand_piano',
+    noteDuration: 0.25,
+    octaveOffset: -6,
+  },
+  '#F1EEE3': {
+    name: 'Piano -7',
+    soundfontName: 'acoustic_grand_piano',
+    noteDuration: 0.25,
+    octaveOffset: -7,
   },
 };
 
