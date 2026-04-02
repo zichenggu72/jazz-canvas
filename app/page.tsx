@@ -20,10 +20,16 @@ interface StrokePoint {
 export default function VisitorsPage() {
   const GRID_ROWS = 21;
   const GRID_COLS = 10;
-  const CELL_SIZE = 28;
   const CELL_GAP = 4;
+  // Derive cell size from viewport so everything fits on screen
+  // Layout: 54px top (play btn area) + 18px gap + grid + 48px bottom (action bar) + 16px padding
+  // Grid height = GRID_ROWS * cell + (GRID_ROWS - 1) * gap
+  // So: cell = (vh - 136 - (GRID_ROWS - 1) * gap) / GRID_ROWS
+  // Also constrained by width: swatch(32) + spacer(16) + GRID_COLS * cell + (GRID_COLS - 1) * gap <= vw
+  // So: cell = (vw - 48 - (GRID_COLS - 1) * gap) / GRID_COLS
+  // Use CSS min() of both to always fit
+  const CELL_CSS = `min((100dvh - 136px - ${(GRID_ROWS - 1) * CELL_GAP}px) / ${GRID_ROWS}, (100vw - 48px - ${(GRID_COLS - 1) * CELL_GAP}px) / ${GRID_COLS})`;
   const SWATCH_W = 32;
-  const SWATCH_H = 28;
   const COLORS = [
     "#D26064",
     "#F8961E",
@@ -218,13 +224,10 @@ export default function VisitorsPage() {
     }
   };
 
-  // Calculate grid total height to distribute swatches evenly
-  const gridHeight = GRID_ROWS * CELL_SIZE + (GRID_ROWS - 1) * CELL_GAP;
-
   return (
-    <div className="w-full min-h-screen bg-[#212121] flex flex-col">
+    <div className="w-full h-dvh bg-[#212121] flex flex-col overflow-hidden">
       {/* Play/Pause button — top center */}
-      <div className="flex justify-center" style={{ paddingTop: 22 }}>
+      <div className="flex justify-center" style={{ paddingTop: 22, paddingBottom: 18 }}>
         <button
           onClick={togglePlayback}
           className="flex items-center justify-center bg-[#171717] border border-[#515151] text-[#DBD2C9] hover:bg-[#262626] transition-colors"
@@ -235,11 +238,13 @@ export default function VisitorsPage() {
       </div>
 
       {/* Color sidebar + Grid */}
-      <div className="flex" style={{ paddingTop: 18 }}>
+      <div className="flex flex-1 min-h-0">
         {/* Color selection — flush left, only right corners rounded */}
         <div
           className="flex flex-col justify-between"
-          style={{ height: gridHeight }}
+          style={{
+            height: `calc(${GRID_ROWS} * ${CELL_CSS} + ${(GRID_ROWS - 1) * CELL_GAP}px)`,
+          }}
         >
           {COLORS.map((color) => (
             <button
@@ -248,7 +253,7 @@ export default function VisitorsPage() {
               style={{
                 backgroundColor: color,
                 width: SWATCH_W,
-                height: SWATCH_H,
+                height: `calc(${CELL_CSS})`,
                 borderRadius: "0 4px 4px 0",
                 outline: currentColor === color && hasSelectedColor && !isRubber
                   ? "2px solid white"
@@ -274,8 +279,8 @@ export default function VisitorsPage() {
           style={{
             touchAction: "none",
             display: "grid",
-            gridTemplateColumns: `repeat(${GRID_COLS}, ${CELL_SIZE}px)`,
-            gridTemplateRows: `repeat(${GRID_ROWS}, ${CELL_SIZE}px)`,
+            gridTemplateColumns: `repeat(${GRID_COLS}, calc(${CELL_CSS}))`,
+            gridTemplateRows: `repeat(${GRID_ROWS}, calc(${CELL_CSS}))`,
             gap: CELL_GAP,
           }}
           onTouchStart={handleTouchStart}
@@ -304,7 +309,7 @@ export default function VisitorsPage() {
       {/* Action Bar */}
       <div
         className="flex justify-between items-center"
-        style={{ paddingLeft: 48, paddingRight: 48, paddingTop: 16 }}
+        style={{ paddingLeft: 48, paddingRight: 48, paddingTop: 16, paddingBottom: 16 }}
       >
         {/* Undo / Redo / Clear */}
         <div className="flex gap-2">
