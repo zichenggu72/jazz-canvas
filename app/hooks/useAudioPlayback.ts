@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import Soundfont from 'soundfont-player';
 import {
   getNoteForRow,
+  shiftOctave,
   INSTRUMENT_CONFIGS,
   findClosestPaletteColor,
   InstrumentConfig,
@@ -54,14 +55,18 @@ export function useAudioPlayback(grid: string[][], tempo: number = 80): UseAudio
     if (ac.state === 'suspended') await ac.resume();
 
     if (!isInitializedRef.current) {
+      // Load each unique soundfont only once
       const entries = Object.entries(INSTRUMENT_CONFIGS);
-      const players = await Promise.all(
-        entries.map(([, config]) =>
-          Soundfont.instrument(ac, config.soundfontName as any, { soundfont: 'MusyngKite' } as any)
-        )
+      const uniqueSoundfontNames = Array.from(new Set(entries.map(([, c]) => c.soundfontName)));
+      const loadedPlayers = new Map<string, any>();
+      await Promise.all(
+        uniqueSoundfontNames.map(async (name) => {
+          const player = await Soundfont.instrument(ac, name as any, { soundfont: 'MusyngKite' } as any);
+          loadedPlayers.set(name, player);
+        })
       );
-      entries.forEach(([color, config], i) => {
-        instrumentMapRef.current.set(color, { player: players[i], config });
+      entries.forEach(([color, config]) => {
+        instrumentMapRef.current.set(color, { player: loadedPlayers.get(config.soundfontName), config });
       });
       isInitializedRef.current = true;
     }
@@ -129,7 +134,9 @@ export function useAudioPlayback(grid: string[][], tempo: number = 80): UseAudio
           const paletteColor = INSTRUMENT_CONFIGS[cellColor]
             ? cellColor
             : findClosestPaletteColor(cellColor);
-          const note = getNoteForRow(row);
+          const baseNote = getNoteForRow(row);
+          const config = INSTRUMENT_CONFIGS[paletteColor];
+          const note = config ? shiftOctave(baseNote, config.octaveOffset) : baseNote;
           if (!notesByInstrument.has(paletteColor)) notesByInstrument.set(paletteColor, []);
           notesByInstrument.get(paletteColor)!.push(note);
         }
